@@ -9,14 +9,11 @@ MariaDB [(none)]> GRANT ALL PRIVILEGES ON keystone.* TO 'keystone'@'%' IDENTIFIE
 // コンポーネントのインストールと設定
 $ sudo apt install -y keystone
 $ sudo vi /etc/keystone/keystone.conf
-/****/
 [database]
-- connection = sqlite:////var/lib/keystone/keystone.db
-+ connection = mysql+pymysql://keystone:****@localhost/keystone
-/****/
+connection = mysql+pymysql://keystone:****@localhost/keystone
+
 [token]
-- # provider = fernet
-+ provider = fernet
+provider = fernet
 
 // データをkeystoneデータベースへ登録
 $ sudo su -s /bin/sh -c  "keystone-manage db_sync" keystone
