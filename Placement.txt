@@ -25,15 +25,12 @@ MariaDB [(none)]> GRANT ALL PRIVILEGES ON placement.* TO 'placement'@'%' IDENTIF
 // 設定ファイル変更　追記は月曜日　これ忘れてたら教えて
 $ sudo vi /etc/placement/placement.conf
 [placement_database]
-# ...
 mysql+pymysql://placement:****@localhost/placement
 
 [api]
-# ...
 auth_strategy = keystone
 
 [keystone_authtoken]
-# ...
 auth_url = http://localhost:5000/
 memcached_servers = localhost:11211
 auth_type = password
