@@ -32,23 +32,18 @@ MariaDB [(none)]> GRANT ALL PRIVILEGES ON nova_cell0.* TO 'nova'@'%' IDENTIFIED 
 // 設定ファイル変更　追記は月曜日　これ忘れてたら教えて
 $ sudo vi /etc/nova/nova.conf
 [api_database]
-# ...
 connection = mysql+pymysql://nova:****@localhost/nova_api
 
 [database]
-# ...
 connection = mysql+pymysql://nova:****@localhost/nova
 
 [DEFAULT]
-# ...
 transport_url = rabbit://openstack:****@localhost:5672/
 
 [api]
-# ...
 auth_strategy = keystone
 
 [keystone_authtoken]
-# ...
 www_authenticate_uri = http://localhost:5000/v3
 auth_url = http://localhost:5000/v3
 memcached_servers = localhost:11211
@@ -60,28 +55,24 @@ username = nova
 password = ****
 
 [DEFAULT]
-# ...
-my_ip = 172.19.78.110
+my_ip = 172.19.78.112
 
 [vnc]
 enabled = true
 # ...
 server_listen = 0.0.0.0
-server_proxyclient_address = 172.19.78.110
-novncproxy_base_url = http://172.19.78.110:6080/vnc_auto.html
+server_proxyclient_address = 172.19.78.112
+novncproxy_base_url = http://172.19.78.112:6080/vnc_auto.html
 
 [glance]
-# ...
 api_servers = http://localhost:9292
 
 [oslo_concurrency]
-# ...
 lock_path = /var/lib/nova/tmp
 
-パッケージのバグのためlog_dir、[DEFAULT]セクションからオプションを 削除してください。
+パッケージのバグのため[DEFAULT]セクションからlog_dirオプションを削除してください。
 
 [placement]
-# ...
 region_name = RegionOne
 project_domain_name = Default
 project_name = service
