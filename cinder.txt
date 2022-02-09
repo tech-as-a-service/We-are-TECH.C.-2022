@@ -35,26 +35,25 @@ $ sudo apt install cinder-api cinder-scheduler
 // コンポーネントの設定
 $ sudo vi /etc/cinder/cinder.conf
 [database]
-- connection = sqlite:////var/lib/cinder/cinder.sqlite
-+ connection = mysql+pymysql://cinder:tanakakai@localhost/cinder
+connection = mysql+pymysql://cinder:****@localhost/cinder
 
 [default]
-+ transport_url = rabbit://openstack:tanakakai@localhost
-+ my_ip = 127.0.0.1
+transport_url = rabbit://openstack:****@localhost
+my_ip = 127.0.0.1
 
-+ [keystone_authtoken]
-+ www_authenticate_uri = http://localhost:5000
-+ auth_url = http://localhost:5000
-+ memcached_servers = localhost:11211
-+ auth_type = password
-+ project_domain_name = default
-+ user_domain_name = default
-+ project_name = service
-+ username = cinder
-+ password = tanakakai
+[keystone_authtoken]
+www_authenticate_uri = http://localhost:5000
+auth_url = http://localhost:5000
+memcached_servers = localhost:11211
+auth_type = password
+project_domain_name = default
+user_domain_name = default
+project_name = service
+username = cinder
+password = ****
 
-+ [oslo_concurrency]
-+ lock_path = /var/lib/cinder/tmp
+[oslo_concurrency]
+lock_path = /var/lib/cinder/tmp
 
 // データベースへデータを入力
 $ sudo su -s /bin/sh -c "cinder-manage db sync" cinder
@@ -62,7 +61,7 @@ $ sudo su -s /bin/sh -c "cinder-manage db sync" cinder
 // novaの構成変更
 $ sudo vi /etc/nova/nova.conf
 [cinder]
-+ os_region_name = RegionOne
+os_region_name = RegionOne
 
 // サービスの再起動
 $ sudo systemctl restart nova-api
@@ -73,15 +72,15 @@ $ sudo systemctl restart apache2
 $ sudo apt install lvm2 thin-provisioning-tools
 
 // パーティション作成
-$ sudo parted /dev/sda
+$ sudo parted /dev/sdb
 (parted) mkpart
-Partition name? []? sda4
+Partition name? []? sdb4
 File system type? [ext4]? ext4
 Start? ******
 End? ******
 
 // LVM物理ボリュームを作成する(/dev/sda4)
-$ sudo pvcreate /dev/sda4
+$ sudo pvcreate /dev/sdb4
 
 // LVMボリュームグループの作成
 $ sudo vgcreate cinder-volumes /dev/sda4
@@ -89,7 +88,7 @@ $ sudo vgcreate cinder-volumes /dev/sda4
 // LVMの設定
 $ sudo vi /etc/lvm/lvm.conf
 devices{
-filter = ["a/sda/", "r/.*/"]
+filter = ["a/sda/", "a/sdb/", "r/.*/"]
 
 // パッケージのインストール
 $ sudo apt install cinder-volume
@@ -97,23 +96,16 @@ $ sudo apt install cinder-volume
 // パッケージの再設定
 $ sudo vi /etc/cinder/cinder.conf
 [DEFAULT]
-+ glance_api_servers = http://localhost:9292
+glance_api_servers = http://localhost:9292
 
-+ [lvm]
-+ volume_driver = cinder.volume.drivers.lvm.LVMVolumeDriver
-+ volume_group = cinder-volumes
-+ target_protocol = iscsi
-+ target_helper = lioadm
+[lvm]
+volume_driver = cinder.volume.drivers.lvm.LVMVolumeDriver
+volume_group = cinder-volumes
+target_protocol = iscsi
+target_helper = lioadm
 
 // パッケージのインストール
 $ sudo apt install cinder-backup
-
-// パッケージの再設定
-$ sudo vi /etc/cinder/cinder.conf
-[DEFAULT]
-# Changed when installing SWIFT
-# backup_driver = cinder.backup.drivers.swift.SwiftBackupDriver
-# backup_swift_url = SWIFT_URL
 
 // 動作確認
 $ . .admin-openrc
