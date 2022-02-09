@@ -1,0 +1,82 @@
+// glance用のデータベースの作成
+$ sudo mysql -u root -p
+MariaDB[(none)]> CREATE DATABASE glance;
+
+// DBアクセス許可の設定
+MariaDB[(none)]> GRANT ALL PRIVILEGES ON glance.* TO 'glance'@'localhost' IDENTIFIED BY '****';
+MariaDB[(none)]> GRANT ALL PRIVILEGES ON glance.* TO 'glance'@'%' IDENTIFIED BY '****';
+MariaDB[(none)]> exit;
+
+// admin資格情報の取得
+$ . .admin-openrc
+
+// openstackにglanceユーザの登録
+$ openstack user create --domain default --password-prompt glance
+
+// glanceユーザにadmin権限の付与
+$ openstack role add --project service --user glance admin
+
+// glanceサービスエンティティの作成
+$ openstack service create --name glance --description "OpenStack Image" image
+
+// Image ServiceAPIエンドポイントの作成
+$ openstack endpoint create --region RegionOne image public http://localhost:9292
+$ openstack endpoint create --region RegionOne image internal http://localhost:9292
+$ openstack endpoint create --region RegionOne image admin http://localhost:9292
+
+// パッケージのインストールと設定
+$ sudo apt install -y glance
+$ sudo vi /etc/glance/glance-api.conf
+/****/
+[database]
+- connection = sqlite:////var/lib/glance/glance.sqlite
++ connection = mysql+pymysql://glance:****@localhost/glance
+/****/
+[keystone_authtoken]
+- #www_authenticate_uri = <None>
+- #auth_uri = <None>
+- #auth_version = <None>
+- #memcached_servers = <None>
+- #auth_type = <None>
+- #service_token_roles_required = false
+//
++ www_authenticate_uri = http://localhost:5000
++ auth_url = http://localhost:5000
++ auth_version = v3
++ memcached_servers = localhost:11211
++ auth_type = password
++ service_token_roles_required = true
++ project_domain_name = Default
++ user_domain_name = Default
++ project_name = service
++ username = glance
++ password = ****
+/****/
+[paste_deploy]
+- #flavor = keystone
++ flavor = keystone
+/****/
+[glance_store]
+- #stores = file,http
+- #default_store = file
+- #filesystem_store_datadir = /var/lib/glance/images
+//
++ stores = file,http
++ default_store = file
++ filesystem_store_datadir = /var/lib/glance/images
+
+// データをglanceデータベースへ登録
+$ sudo su -s /bin/sh -c "glance-manage db_sync" glance
+
+// glanceサービスの再起動
+$ sudo systemctl restart glance-api
+
+/* テストとしてCirrOSの登録 */
+// ソース画像のダウンロード
+$ sudo wget http://download.cirros-cloud.net/0.4.0/cirros-0.4.0-x86_64-disk.img
+
+// CirrOSイメージの登録
+$ glance image-create --name "cirros" --file cirros-0.4.0-x86_64-disk.img \
+  --disk-format qcow2 --container-format bare --visibility=public
+
+

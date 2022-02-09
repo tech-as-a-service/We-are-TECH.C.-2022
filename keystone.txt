@@ -1,0 +1,49 @@
+// keystone用のデータベースの作成
+$ sudo mysql -u root -p
+MariaDB[(none)]> CREATE DATABASE keystone;
+
+// DBアクセス許可の設定
+MariaDB [(none)]> GRANT ALL PRIVILEGES ON keystone.* TO 'keystone'@'localhost' IDENTIFIED BY '****';
+MariaDB [(none)]> GRANT ALL PRIVILEGES ON keystone.* TO 'keystone'@'%' IDENTIFIED BY '****';
+
+// コンポーネントのインストールと設定
+$ sudo apt install -y keystone
+$ sudo vi /etc/keystone/keystone.conf
+/****/
+[database]
+- connection = sqlite:////var/lib/keystone/keystone.db
++ connection = mysql+pymysql://keystone:****@localhost/keystone
+/****/
+[token]
+- # provider = fernet
++ provider = fernet
+
+// データをkeystoneデータベースへ登録
+$ sudo su -s /bin/sh -c  "keystone-manage db_sync" keystone
+
+// Fernetキーリポジトリの初期化
+$ sudo keystone-manage fernet_setup --keystone-user keystone --keystone-group keystone
+$ sudo keystone-manage credential_setup --keystone-user keystone --keystone-group keystone
+
+// keystone自動設定
+$ sudo keystone-manage bootstrap --bootstrap-password **** \
+  --bootstrap-admin-url http://localhost:5000/v3/ \
+  --bootstrap-internal-url http://localhost:5000/v3/ \
+  --bootstrap-public-url http://localhost:5000/v3/ \
+  --bootstrap-region-id RegionOne
+
+// 管理者環境スクリプトの作成
+$ vi .admin-openrc
+/****/
+export OS_PROJECT_DOMAIN_NAME=Default
+export OS_USER_DOMAIN_NAME=Default
+export OS_PROJECT_NAME=admin
+export OS_USERNAME=admin
+export OS_PASSWORD=****
+export OS_AUTH_URL=http://localhost:5000/v3
+export OS_IDENTITY_API_VERSION=3
+export OS_IMAGE_API_VERSION=2
+
+// service プロジェクトの作成
+$ . .admin-openrc
+$ openstack project create --domain default --description "Service Project" service

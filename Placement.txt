@@ -1,0 +1,47 @@
+// placement用のデータベース作成
+# sudo mysql -u root -p
+MariaDB [(none)]> CREATE DATABASE placement;
+// DBアクセス許可の設定
+MariaDB [(none)]> GRANT ALL PRIVILEGES ON placement.* TO 'placement'@'localhost' IDENTIFIED BY '****';
+MariaDB [(none)]> GRANT ALL PRIVILEGES ON placement.* TO 'placement'@'%' IDENTIFIED BY '****';
+
+// admin資格情報の取得
+# . .admin-openrc
+
+// プレースメントサービスユーザーを作成
+# openstack user create --domain default --password-prompt placement
+// Placementユーザーをサービスプロジェクトに追加
+# openstack role add --project service --user placement admin
+// PlacementAPIエントリを作成
+# openstack service create --name placement --description "Placement API" placement
+// PlacementAPIサービスエンドポイントを作成
+# openstack endpoint create --region RegionOne placement public http://localhost:8778
+# openstack endpoint create --region RegionOne placement internal http://localhost:8778
+# openstack endpoint create --region RegionOne placement admin http://localhost:8778
+
+// Placementパッケージをインストール
+# sudo apt install placement-api
+
+// 設定ファイル変更　追記は月曜日　これ忘れてたら教えて
+$ sudo vi /etc/placement/placement.conf
+[placement_database]
+# ...
+mysql+pymysql://placement:****@localhost/placement
+
+[api]
+# ...
+auth_strategy = keystone
+
+[keystone_authtoken]
+# ...
+auth_url = http://localhost:5000/
+memcached_servers = localhost:11211
+auth_type = password
+project_domain_name = Default
+user_domain_name = Default
+project_name = service
+username = placement
+password = ****
+
+//データベースにデータを入力
+# sudo su -s /bin/sh -c "placement-manage db sync" placement

@@ -1,0 +1,120 @@
+// cinder用のデータベースの作成
+$ sudo mysql -u root -p
+MariaDB[(none)]> CREATE DATABASE cinder;
+
+// DBアクセス許可の設定
+MariaDB [(none)]> GRANT ALL PRIVILEGES ON cinder.* TO 'cinder'@'localhost' IDENTIFIED BY '****';
+MariaDB [(none)]> GRANT ALL PRIVILEGES ON cinder.* TO 'cinder'@'%' IDENTIFIED BY '****';
+
+// admin資格情報の取得
+$ . .admin-openrc
+
+// openstackにcinderユーザの登録
+$ openstack user create --domain default --password-prompt cinder
+
+// cinderユーザにadmin権限の付与
+$ openstack role add --project service --user cinder admin
+
+// cinder サービスエンティティの作成(v2, v3)
+$ openstack service create --name cinderv2 --description "OpenStack Block Storage" volumev2
+$ openstack service create --name cinderv3 --description "OpenStack Block Storage" volumev3
+
+// cinder サービスエンドポイントの作成(v2)
+$ openstack endpoint create --region RegionOne volumev2 public http://localhost:8776/v2/%\(project_id\)s
+$ openstack endpoint create --region RegionOne volumev2 internal  http://localhost:8776/v2/%\(project_id\)s
+$ openstack endpoint create --region RegionOne volumev2 admin  http://localhost:8776/v2/%\(project_id\)s
+
+// cinder サービスエンドポイントの作成(v3)
+$ openstack endpoint create --region RegionOne volumev3 public http://localhost:8776/v3/%\(project_id\)s
+$ openstack endpoint create --region RegionOne volumev3 internal http://localhost:8776/v3/%\(project_id\)s
+$ openstack endpoint create --region RegionOne volumev3 admin http://localhost:8776/v3/%\(project_id\)s
+
+// コンポーネントのインストール
+$ sudo apt install cinder-api cinder-scheduler
+
+// コンポーネントの設定
+$ sudo vi /etc/cinder/cinder.conf
+[database]
+- connection = sqlite:////var/lib/cinder/cinder.sqlite
++ connection = mysql+pymysql://cinder:tanakakai@localhost/cinder
+
+[default]
++ transport_url = rabbit://openstack:tanakakai@localhost
++ my_ip = 127.0.0.1
+
++ [keystone_authtoken]
++ www_authenticate_uri = http://localhost:5000
++ auth_url = http://localhost:5000
++ memcached_servers = localhost:11211
++ auth_type = password
++ project_domain_name = default
++ user_domain_name = default
++ project_name = service
++ username = cinder
++ password = tanakakai
+
++ [oslo_concurrency]
++ lock_path = /var/lib/cinder/tmp
+
+// データベースへデータを入力
+$ sudo su -s /bin/sh -c "cinder-manage db sync" cinder
+
+// novaの構成変更
+$ sudo vi /etc/nova/nova.conf
+[cinder]
++ os_region_name = RegionOne
+
+// サービスの再起動
+$ sudo systemctl restart nova-api
+$ sudo systemctl restart cinder-scheduler
+$ sudo systemctl restart apache2
+
+// ユーティリティパッケージのインストール
+$ sudo apt install lvm2 thin-provisioning-tools
+
+// パーティション作成
+$ sudo parted /dev/sda
+(parted) mkpart
+Partition name? []? sda4
+File system type? [ext4]? ext4
+Start? ******
+End? ******
+
+// LVM物理ボリュームを作成する(/dev/sda4)
+$ sudo pvcreate /dev/sda4
+
+// LVMボリュームグループの作成
+$ sudo vgcreate cinder-volumes /dev/sda4
+
+// LVMの設定
+$ sudo vi /etc/lvm/lvm.conf
+devices{
+filter = ["a/sda/", "r/.*/"]
+
+// パッケージのインストール
+$ sudo apt install cinder-volume
+
+// パッケージの再設定
+$ sudo vi /etc/cinder/cinder.conf
+[DEFAULT]
++ glance_api_servers = http://localhost:9292
+
++ [lvm]
++ volume_driver = cinder.volume.drivers.lvm.LVMVolumeDriver
++ volume_group = cinder-volumes
++ target_protocol = iscsi
++ target_helper = tgtadm
+
+// パッケージのインストール
+$ sudo apt install cinder-backup
+
+// パッケージの再設定
+$ sudo vi /etc/cinder/cinder.conf
+[DEFAULT]
+# Changed when installing SWIFT
+# backup_driver = cinder.backup.drivers.swift.SwiftBackupDriver
+# backup_swift_url = SWIFT_URL
+
+// 動作確認
+$ . .admin-openrc
+$ openstack volume service list

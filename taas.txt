@@ -1,0 +1,43 @@
+// パッケージの更新
+# sudo apt update
+# sudo apt upgrade
+
+// ufwの有効化、ssh/httpのポート開放
+# sudo ufw enable
+# sudo ufw status
+# sudo ufw allow ssh
+# sudo ufw allow http
+
+// 設定の確認
+# sudo ufw status
+
+// タイムゾーンの設定
+# sudo timedatectl set-timezone Asia/Tokyo
+# timedatectl | grep Time
+
+// OpenStack:wallabyのリポジトリ登録
+# sudo add-apt-repository cloud-archive:wallaby
+
+// クライアントのインストール
+# sudo apt install python3-openstackclient
+
+// SQLの初期セットアップ
+# sudo apt install mariadb-server python3-pymysql
+# sudo mysql_secure_installation
+管理者パスワードの設定
+それ以外はすべてy
+
+// ログインの確認
+# sudo mysql -u root -p
+
+// rabbitmqの初期セットアップ
+# sudo apt install rabbitmq-server
+
+// rabbitmqのユーザ追加、パーミッション設定
+# sudo rabbitmqctl add_user openstack ****
+# sudo rabbitmqctl set_permissions openstack ".*" ".*" ".*"
+
+// memcached/etcdのインストール
+# sudo apt install memcached python3-memcache
+# sudo apt install etcd
+# sudo systemctl enable etcd

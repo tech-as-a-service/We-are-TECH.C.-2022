@@ -1,0 +1,31 @@
+# パッケージのインストール
+$ sudo apt install openstack-dashboard
+
+#パッケージの設定
+$ sudo vi /etc/openstack-dashboard/local_settings.py
+- TIME_ZONE = "UTC"
++ SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
++ OPENSTACK_KEYSTONE_URL = "http://172.19.78.110:5000/v3"
++ OPENSTACK_KEYSTONE_MULTIDOMAIN_SUPPORT = True
++ OPENSTACK_API_VERSIONS = {
++     "identity": 3,
++     "image": 2,
++     "volume": 3,
++ }
++ OPENSTACK_KEYSTONE_DEFAULT_DOMAIN = "Default"
++ OPENSTACK_KEYSTONE_DEFAULT_ROLE = "user"
++ OPENSTACK_NEUTRON_NETWORK = {
++     'enable_router': False,
++     'enable_quotas': False,
++     'enable_ipv6': False,
++     'enable_distributed_router': False,
++     'enable_ha_router': False,
++     'enable_fip_topology_check': False,
++ }
++ TIME_ZONE = "TIME_ZONE"
+
+# Webサーバ再起動
+$ sudo systemctl restart apache2.service
+
+# 動作確認
+# http://172.19.78.110/horizonにアクセスする
